@@ -110,6 +110,7 @@ library
   if flag(zlib)
     build-depends:
         zlib
+    CPP-Options: -DZLIB
   if flag(templatehaskell)
     other-extensions: TemplateHaskell
     build-depends:

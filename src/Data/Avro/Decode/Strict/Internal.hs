@@ -1,3 +1,4 @@
+{-# LANGUAGE CPP                 #-}
 {-# LANGUAGE FlexibleInstances   #-}
 {-# LANGUAGE MultiWayIf          #-}
 {-# LANGUAGE OverloadedStrings   #-}
@@ -7,7 +8,6 @@
 module Data.Avro.Decode.Strict.Internal
 where
 
-import qualified Codec.Compression.Zlib     as Z
 import           Control.Monad              (replicateM, when)
 import qualified Data.Aeson                 as A
 import qualified Data.Array                 as Array

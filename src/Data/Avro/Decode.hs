@@ -16,7 +16,6 @@ module Data.Avro.Decode
   , GetAvro(..)
   ) where
 
-import qualified Codec.Compression.Zlib           as Z
 import           Control.Monad                    (replicateM, when)
 import qualified Data.Aeson                       as A
 import qualified Data.Array                       as Array
