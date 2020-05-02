@@ -1,10 +1,15 @@
+{-# LANGUAGE CPP                 #-}
 {-# LANGUAGE OverloadedStrings   #-}
 {-# LANGUAGE ScopedTypeVariables #-}
 {-# LANGUAGE TemplateHaskell     #-}
 module Avro.Decode.ContainerSpec
 where
 
+#ifdef ZLIB
 import Data.Avro.Codec       (Codec (..), deflateCodec, nullCodec)
+#else
+import Data.Avro.Codec       (Codec (..), nullCodec)
+#endif
 import Data.ByteString.Char8 (unpack)
 import Data.List             (unfoldr)
 
@@ -22,7 +27,9 @@ import           Test.Hspec
 spec :: Spec
 spec = do
   containerSpec nullCodec
+#ifdef ZLIB
   containerSpec deflateCodec
+#endif
 
 containerSpec :: Codec -> Spec
 containerSpec codec = describe title $ do

@@ -1,4 +1,5 @@
 {-# LANGUAGE ConstraintKinds     #-}
+{-# LANGUAGE CPP                 #-}
 {-# LANGUAGE FlexibleInstances   #-}
 {-# LANGUAGE MultiWayIf          #-}
 {-# LANGUAGE PatternSynonyms     #-}
@@ -50,7 +51,10 @@ module Data.Avro
   , FromAvro
 
   -- * Compression
-  , Codec, nullCodec, deflateCodec
+  , Codec, nullCodec
+#ifdef ZLIB
+  , deflateCodec
+#endif
 
   , HasAvroSchema(..)
   , schemaOf
@@ -58,7 +62,11 @@ module Data.Avro
   ) where
 
 import           Control.Monad                ((>=>))
+#ifdef ZLIB
 import           Data.Avro.Codec              (Codec, deflateCodec, nullCodec)
+#else
+import           Data.Avro.Codec              (Codec, nullCodec)
+#endif
 import           Data.Avro.Encoding.FromAvro
 import           Data.Avro.Encoding.ToAvro
 import           Data.Avro.HasAvroSchema

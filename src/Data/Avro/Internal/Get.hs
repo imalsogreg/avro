@@ -1,4 +1,5 @@
 {-# LANGUAGE BangPatterns        #-}
+{-# LANGUAGE CPP                 #-}
 {-# LANGUAGE FlexibleInstances   #-}
 {-# LANGUAGE MultiWayIf          #-}
 {-# LANGUAGE OverloadedStrings   #-}
@@ -11,7 +12,7 @@
 module Data.Avro.Internal.Get
 where
 
-import qualified Codec.Compression.Zlib     as Z
+
 import           Control.Monad              (replicateM, when)
 import           Data.Binary.Get            (Get)
 import qualified Data.Binary.Get            as G

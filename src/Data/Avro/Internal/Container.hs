@@ -1,3 +1,4 @@
+{-# LANGUAGE CPP                 #-}
 {-# LANGUAGE OverloadedStrings   #-}
 {-# LANGUAGE RankNTypes          #-}
 {-# LANGUAGE RecordWildCards     #-}
@@ -265,7 +266,11 @@ consumeN n f a =
 ----------------------------------------------------------------
 parseCodec :: Monad m => Maybe BL.ByteString -> m Codec
 parseCodec (Just "null")    = pure Codec.nullCodec
+#ifdef ZLIB
 parseCodec (Just "deflate") = pure Codec.deflateCodec
+#else
+parseCodec (Just "deflate") = error "avro was compiled without zlib support"
+#endif
 parseCodec (Just x)         = error $ "Unrecognized codec: " <> BLC.unpack x
 parseCodec Nothing          = pure Codec.nullCodec
 
