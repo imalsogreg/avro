@@ -1,4 +1,5 @@
 {-# LANGUAGE ConstraintKinds     #-}
+{-# LANGUAGE CPP                 #-}
 {-# LANGUAGE FlexibleInstances   #-}
 {-# LANGUAGE MultiWayIf          #-}
 {-# LANGUAGE ScopedTypeVariables #-}
@@ -92,7 +93,7 @@ import qualified Data.Vector           as V
 import           Data.Word
 import           Prelude               as P
 
-import Data.Avro.Codec         (Codec, deflateCodec, nullCodec)
+import Data.Avro.Codec         (Codec, nullCodec)
 import Data.Avro.FromAvro
 import Data.Avro.HasAvroSchema
 import Data.Avro.ToAvro

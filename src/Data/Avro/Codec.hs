@@ -1,4 +1,5 @@
 {-# LANGUAGE BangPatterns        #-}
+{-# LANGUAGE CPP                 #-}
 {-# LANGUAGE OverloadedStrings   #-}
 {-# LANGUAGE RankNTypes          #-}
 {-# LANGUAGE ScopedTypeVariables #-}
@@ -6,10 +7,16 @@ module Data.Avro.Codec (
     Codec(..)
   , Decompress
   , nullCodec
+
+#ifdef ZLIB
   , deflateCodec
+#endif
   ) where
 
+
+#ifdef ZLIB
 import           Codec.Compression.Zlib.Internal as Zlib
+#endif
 import qualified Data.Binary.Get                 as G
 import           Data.ByteString                 (ByteString)
 import qualified Data.ByteString                 as BS
@@ -50,6 +57,7 @@ nullCodec =
     , codecCompress   = id
     }
 
+#ifdef ZLIB
 -- | `deflateCodec` specifies @deflate@ codec required by Avro spec.
 -- (see https://avro.apache.org/docs/1.8.1/spec.html#deflate)
 deflateCodec :: Codec
@@ -114,3 +122,4 @@ deflateDecompress bytes parser = do
       Left "deflate: Not enough input"
     G.Done _ _ x ->
       Right x
+#endif
