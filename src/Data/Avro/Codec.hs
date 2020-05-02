@@ -7,10 +7,7 @@ module Data.Avro.Codec (
     Codec(..)
   , Decompress
   , nullCodec
-
-#ifdef ZLIB
   , deflateCodec
-#endif
   ) where
 
 
@@ -122,4 +119,11 @@ deflateDecompress bytes parser = do
       Left "deflate: Not enough input"
     G.Done _ _ x ->
       Right x
+#else
+deflateCodec =
+  Codec
+    { codecName       = "deflate (unsupported)"
+    , codecDecompress = error "avro was compiled without zlib support"
+    , codecCompress   = error "avro was compiled without zlib support"
+    }
 #endif
