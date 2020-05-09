@@ -119,11 +119,7 @@ instance GetAvro ContainerHeader where
 
 getCodec :: Monad m => Maybe BL.ByteString -> m Codec
 getCodec (Just "null")    = pure nullCodec
-#ifdef ZLIB
 getCodec (Just "deflate") = pure deflateCodec
-#else
-getCodec (Just "deflate") = error "avro was compiled without zlib support"
-#endif
 getCodec (Just x)         = fail $ "Unrecognized codec: " <> BC.unpack x
 getCodec Nothing          = pure nullCodec
 
