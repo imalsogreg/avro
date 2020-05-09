@@ -14,10 +14,14 @@ module Data.Avro.Codec (
 #ifdef ZLIB
 import           Codec.Compression.Zlib.Internal as Zlib
 #endif
+
+import qualified Codec.Compression.Zlib.Monad as Zlib
+import qualified Codec.Compression.Zlib as Zlib
 import qualified Data.Binary.Get                 as G
 import           Data.ByteString                 (ByteString)
 import qualified Data.ByteString                 as BS
 import qualified Data.ByteString.Lazy            as LBS
+import qualified Data.List                       as L
 
 -- | Block decompression function for blocks of Avro.
 type Decompress a = LBS.ByteString -> G.Get a -> Either String a
@@ -54,7 +58,6 @@ nullCodec =
     , codecCompress   = id
     }
 
-#ifdef ZLIB
 -- | `deflateCodec` specifies @deflate@ codec required by Avro spec.
 -- (see https://avro.apache.org/docs/1.8.1/spec.html#deflate)
 deflateCodec :: Codec
@@ -68,7 +71,8 @@ deflateCodec =
 
 deflateCompress :: LBS.ByteString -> LBS.ByteString
 deflateCompress =
-  Zlib.compress Zlib.rawFormat Zlib.defaultCompressParams
+  -- Zlib.compress Zlib.rawFormat Zlib.defaultCompressParams
+  error "zlib was compiled without compression support"
 
 
 -- | Internal type to help construct a lazy list of
@@ -76,7 +80,7 @@ deflateCompress =
 data Chunk
   = ChunkRest LBS.ByteString
   | ChunkBytes ByteString
-  | ChunkError Zlib.DecompressError
+  | ChunkError Zlib.DecompressionError
 
 
 deflateDecompress :: forall a. LBS.ByteString -> G.Get a -> Either String a
@@ -85,13 +89,26 @@ deflateDecompress bytes parser = do
     -- N.B. this list is lazily created which allows us to
     -- interleave decompression and binary decoding.
     chunks :: [Chunk]
-    chunks =
-      Zlib.foldDecompressStreamWithInput
-        (\x xs -> ChunkBytes x : xs)
-        (\rest -> [ChunkRest rest])
-        (\err -> [ChunkError err])
-        (Zlib.decompressST Zlib.rawFormat Zlib.defaultDecompressParams)
-        bytes
+    chunks = go (LBS.toChunks bytes) Zlib.decompressIncremental
+      where
+        go byteChunks decoder = case decoder of
+          Zlib.Done
+            | L.null byteChunks -> []
+            | otherwise         -> [ChunkRest $ LBS.fromChunks byteChunks]
+          Zlib.DecompError e -> [ChunkError e]
+          Zlib.NeedMore f    -> case byteChunks of
+            []     -> error "TODO"
+            (x:xs) -> go xs (f x)
+          Zlib.Chunk c m     -> ChunkBytes (LBS.toStrict c) : go byteChunks m
+
+    -- chunks :: [Chunk]
+    -- chunks =
+    --   Zlib.foldDecompressStreamWithInput
+    --     (\x xs -> ChunkBytes x : xs)
+    --     (\rest -> [ChunkRest rest])
+    --     (\err -> [ChunkError err])
+    --     (Zlib.decompressST Zlib.rawFormat Zlib.defaultDecompressParams)
+    --     bytes
 
     decode :: G.Decoder a -> [Chunk] -> Either String (G.Decoder a)
     decode !dec@G.Fail{} _ =
@@ -119,11 +136,3 @@ deflateDecompress bytes parser = do
       Left "deflate: Not enough input"
     G.Done _ _ x ->
       Right x
-#else
-deflateCodec =
-  Codec
-    { codecName       = "deflate (unsupported)"
-    , codecDecompress = error "avro was compiled without zlib support"
-    , codecCompress   = error "avro was compiled without zlib support"
-    }
-#endif

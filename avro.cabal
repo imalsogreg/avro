@@ -49,10 +49,6 @@ flag templatehaskell
   manual: False
   default: True
 
-flag zlib
-  description: Allow zlib {de}compression of avro data
-  default: False
-
 library
   exposed-modules:
       Data.Avro
@@ -107,10 +103,7 @@ library
     , tf-random
     , unordered-containers
     , vector
-  if flag(zlib)
-    build-depends:
-        zlib
-    CPP-Options: -DZLIB
+    , pure-zlib
   if flag(templatehaskell)
     other-extensions: TemplateHaskell
     build-depends:
