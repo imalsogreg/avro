@@ -83,23 +83,72 @@ data Chunk
   | ChunkError Zlib.DecompressionError
 
 
+-- foldDecompressStreamWithInput :: (S.ByteString -> a -> a)
+--                               -> (L.ByteString -> a)
+--                               -> (DecompressError -> a)
+--                               -> (forall s. DecompressStream (ST s))
+--                               -> L.ByteString
+--                               -> a
+-- foldDecompressStreamWithInput chunk end err = \s lbs ->
+--     runST (fold s (L.toChunks lbs))
+--   where
+--     fold (DecompressInputRequired next) [] =
+--       next S.empty >>= \strm -> fold strm []
+
+--     fold (DecompressInputRequired next) (inchunk:inchunks) =
+--       next inchunk >>= \s -> fold s inchunks
+
+--     fold (DecompressOutputAvailable outchunk next) inchunks = do
+--       r <- next >>= \s -> fold s inchunks
+--       return $ chunk outchunk r
+
+--     fold (DecompressStreamEnd inchunk) inchunks =
+--       return $ end (L.fromChunks (inchunk:inchunks))
+
+--     fold (DecompressStreamError derr) _ =
+--       return $ err derr
+
+foldDecompressStreamWithInput
+  :: (LBS.ByteString -> a -> a)
+  -> (LBS.ByteString -> a)
+  -> (Zlib.DecompressionError -> a)
+  -> (Zlib.ZlibDecoder)
+  -> LBS.ByteString
+  -> a
+foldDecompressStreamWithInput chunk end err = \s lbs ->
+  fold s (LBS.toChunks lbs)
+  where
+    fold (Zlib.NeedMore f) [] =
+      let s' = f BS.empty in fold s' []
+    fold (Zlib.NeedMore f) (inchunk:inchunks) =
+      let s' = f inchunk in fold s' inchunks
+    fold (Zlib.Chunk outchunk s') inchunks =
+      chunk outchunk (fold s' inchunks)
+    fold Zlib.Done inchunks =
+      end (LBS.fromChunks inchunks)
+    fold (Zlib.DecompError e) _ =
+      err e
+
 deflateDecompress :: forall a. LBS.ByteString -> G.Get a -> Either String a
 deflateDecompress bytes parser = do
   let
     -- N.B. this list is lazily created which allows us to
     -- interleave decompression and binary decoding.
+    -- chunks :: [Chunk]
+    -- chunks = go (LBS.toChunks bytes) Zlib.decompressIncremental
+    --   where
+    --     go byteChunks decoder = case decoder of
+    --       Zlib.Done
+    --         | L.null byteChunks -> []
+    --         | otherwise         -> [ChunkRest $ LBS.fromChunks byteChunks]
+    --       Zlib.DecompError e -> [ChunkError e]
+    --       Zlib.NeedMore f    -> case byteChunks of
+    --         []     -> error "TODO"
+    --         (x:xs) -> go xs (f x)
+    --       Zlib.Chunk c m     -> ChunkBytes (LBS.toStrict c) : go byteChunks m
     chunks :: [Chunk]
-    chunks = go (LBS.toChunks bytes) Zlib.decompressIncremental
-      where
-        go byteChunks decoder = case decoder of
-          Zlib.Done
-            | L.null byteChunks -> []
-            | otherwise         -> [ChunkRest $ LBS.fromChunks byteChunks]
-          Zlib.DecompError e -> [ChunkError e]
-          Zlib.NeedMore f    -> case byteChunks of
-            []     -> error "TODO"
-            (x:xs) -> go xs (f x)
-          Zlib.Chunk c m     -> ChunkBytes (LBS.toStrict c) : go byteChunks m
+    chunks = foldDecompressStreamWithInput (\x xs -> ChunkBytes (LBS.toStrict x) : xs) (\rest -> [ChunkRest rest]) (\err -> [ChunkError err])
+             Zlib.decompressIncremental bytes
 
     -- chunks :: [Chunk]
     -- chunks =
