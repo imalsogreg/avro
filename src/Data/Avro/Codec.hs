@@ -16,6 +16,7 @@ import           Codec.Compression.Zlib.Internal as Zlib
 #endif
 
 import qualified Codec.Compression.Zlib.Monad as Zlib
+import qualified Codec.Compression.Zlib.Deflate as Zlib
 import qualified Codec.Compression.Zlib as Zlib
 import qualified Data.Binary.Get                 as G
 import           Data.ByteString                 (ByteString)
@@ -148,7 +149,7 @@ deflateDecompress bytes parser = do
     --       Zlib.Chunk c m     -> ChunkBytes (LBS.toStrict c) : go byteChunks m
     chunks :: [Chunk]
     chunks = foldDecompressStreamWithInput (\x xs -> ChunkBytes (LBS.toStrict x) : xs) (\rest -> [ChunkRest rest]) (\err -> [ChunkError err])
-             Zlib.decompressIncremental bytes
+             (Zlib.runDeflateM Zlib.inflate) bytes
 
     -- chunks :: [Chunk]
     -- chunks =
