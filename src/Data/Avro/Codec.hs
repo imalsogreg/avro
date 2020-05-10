@@ -120,7 +120,7 @@ foldDecompressStreamWithInput chunk end err = \s lbs ->
   fold s (LBS.toChunks lbs)
   where
     fold (Zlib.NeedMore f) [] =
-      let s' = f BS.empty in fold s' []
+      let s' = error "not enough" -- f BS.empty in fold s' []
     fold (Zlib.NeedMore f) (inchunk:inchunks) =
       let s' = f inchunk in fold s' inchunks
     fold (Zlib.Chunk outchunk s') inchunks =
