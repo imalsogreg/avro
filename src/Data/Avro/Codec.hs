@@ -110,7 +110,7 @@ data Chunk
 --       return $ err derr
 
 foldDecompressStreamWithInput
-  :: (LBS.ByteString -> a -> a)
+  :: (BS.ByteString -> a -> a)
   -> (LBS.ByteString -> a)
   -> (Zlib.DecompressionError -> a)
   -> (Zlib.ZlibDecoder)
@@ -119,12 +119,12 @@ foldDecompressStreamWithInput
 foldDecompressStreamWithInput chunk end err = \s lbs ->
   fold s (LBS.toChunks lbs)
   where
-    fold (Zlib.NeedMore f) [] = error "not enough"
-      -- let s' = f BS.empty in fold s' []
+    fold (Zlib.NeedMore f) [] =
+      let !s' = f BS.empty in fold s' []
     fold (Zlib.NeedMore f) (inchunk:inchunks) =
-      let s' = f inchunk in fold s' inchunks
+      let !s' = f inchunk in fold s' inchunks
     fold (Zlib.Chunk outchunk s') inchunks =
-      chunk outchunk (fold s' inchunks)
+      let !r = fold s' inchunks in chunk (LBS.toStrict outchunk) r
     fold Zlib.Done inchunks =
       end (LBS.fromChunks inchunks)
     fold (Zlib.DecompError e) _ =
@@ -148,7 +148,10 @@ deflateDecompress bytes parser = do
     --         (x:xs) -> go xs (f x)
     --       Zlib.Chunk c m     -> ChunkBytes (LBS.toStrict c) : go byteChunks m
     chunks :: [Chunk]
-    chunks = foldDecompressStreamWithInput (\x xs -> ChunkBytes (LBS.toStrict x) : xs) (\rest -> [ChunkRest rest]) (\err -> [ChunkError err])
+    chunks = foldDecompressStreamWithInput
+             (\x xs -> ChunkBytes (x) : xs)
+             (\rest -> [ChunkRest rest])
+             (\err -> [ChunkError err])
              (Zlib.runDeflateM Zlib.inflate) bytes
 
     -- chunks :: [Chunk]
